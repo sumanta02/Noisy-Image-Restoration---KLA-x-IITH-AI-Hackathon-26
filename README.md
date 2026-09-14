@@ -1,78 +1,56 @@
-# Physically-Motivated Compound-Degradation Image Restoration 🏆
+# Physically Motivated Compound-Degradation Image Restoration
 
-> [**2nd Place Overall (Team Name: TAUIG)**](https://drive.google.com/file/d/1J8r_s9TB1i0g8wlXXWLe6oYmtwyoM9_I/view?usp=sharing) at the KLA AI Hackathon, IIT Hyderabad '26
-> - [**Public Leaderboard:**](https://drive.google.com/file/d/1ljUQov6SCQWBecOtH92l9pNomgWWjmEg/view?usp=sharing) Rank 13 (Score: 0.88614)
-> - [**Private Leaderboard:**](https://drive.google.com/file/d/1yg0PYCcsbPbGYoGU24Yfj9zb5nMNqvGM/view?usp=sharing) Rank 10 (Score: 0.88303)
-> - [**Final Rank (After Presentation):**](https://www.linkedin.com/feed/update/urn:li:activity:7462877666421923840/) Rank 2 🥈
+> [2nd Place Overall, Team TAUIG](https://drive.google.com/file/d/1J8r_s9TB1i0g8wlXXWLe6oYmtwyoM9_I/view?usp=sharing), KLA AI Hackathon, IIT Hyderabad 2026.
+> [Public leaderboard](https://drive.google.com/file/d/1ljUQov6SCQWBecOtH92l9pNomgWWjmEg/view?usp=sharing): rank 13 (0.88614). [Private leaderboard](https://drive.google.com/file/d/1yg0PYCcsbPbGYoGU24Yfj9zb5nMNqvGM/view?usp=sharing): rank 10 (0.88303). [Final presentation rank](https://www.linkedin.com/feed/update/urn:li:activity:7462877666421923840/): rank 2.
 
-## 📖 Overview
+TAUIG's solution for grayscale 2x joint super-resolution and restoration from paired noisy low-resolution `.npy` images. The pipeline adapts an official SIDD-pretrained NAFNet to one-channel inputs, then fine-tunes it with paired high-resolution supervision and a robust low-resolution consistency constraint.
 
-This repository contains our award-winning solution for reconstructing high-quality images from degraded, noisy, and low-resolution `.npy` inputs. The implementation includes the training loop, inference pipeline, Kaggle submission helper, experiment configs, and notebooks used during development.
+For the equations, calibration assumptions, loss schedule, curriculum, and inference details, read the [technical methodology](docs/methodology.md). It is deliberately separate so this page remains a quick way to understand and run the project.
 
-![Noisy vs Ground Truth](visualisations/noisy_gt_comp.png)
+![Paired noisy low-resolution observation and clean high-resolution target](visualisations/noisy_gt_comparison_v2.png)
 
-Real-world physical degradation is complex. We tackled the challenge of **compound corruptions**—simultaneously handling Speckle Noise, Additive White Gaussian Noise (AWGN), and Block Mean Downsampling.
+## Pipeline at a glance
 
-For a deeper technical walkthrough, see [`docs/methodology.md`](docs/methodology.md).
+```mermaid
+flowchart LR
+    y["Noisy LR y"] --> upsample["Bilinear 2x upsample"]
+    upsample --> replicate["Replicate grayscale channel to RGB"]
+    replicate --> nafnet["Official NAFNet"]
+    nafnet --> mean["RGB channel mean"]
+    mean --> prediction["Restored HR output"]
 
-## 🚀 Key Innovations
+    ground_truth["Paired ground-truth HR"] --> reconstruction["HR reconstruction objective"]
+    prediction --> reconstruction
 
-### 1. NAFNetH2SR Architecture
-We adapted the highly efficient **Nonlinear Activation Free Network (NAFNet)** for joint Super-Resolution ($2\times$) and compound denoising in grayscale.
-- Replaced standard nonlinear activations (ReLU, GELU) with **SimpleGate** (element-wise multiplication).
-- Achieved state-of-the-art restoration with drastically reduced MACs and computational complexity.
+    prediction --> reprojection["2x block-mean reprojection"]
+    reprojection --> dc["Robust H2 consistency objective"]
+    y --> dc
+```
 
-### 2. Physically-Motivated Loss Landscape
-To prevent over-smoothing and enforce structural fidelity, we developed a dynamically weighted loss function:
-- **Reconstruction:** Official NAFNet PSNR Loss + Charbonnier Loss for outlier robustness.
-- **Perceptual \& Structural:** SSIM + LPIPS losses.
-- **Heteroscedastic Data Consistency (DC):** A novel heavy-tailed Student-t formulation to robustly handle outlier pixels without variance collapse.
+The approach has four practical pieces:
 
-### 3. Curriculum-Based OOD Augmentation
-Our model climbed from Rank 13 to Rank 10 on the private leaderboard thanks to our generalization strategy:
-- **Phase 1:** Heavy synthetic OOD degradations (affine shifts, dynamic Gamma, 3x3 reflection blur, impulse noise, spatial cutouts) with early layers frozen.
-- **Phase 2 \& 3:** Linear decay of transforms and complete un-freezing for convergence on the pure dataset distribution.
+- **Restoration backbone:** bilinear upsampling, RGB-compatible NAFNet restoration, then grayscale channel reduction produce the 2x HR output.
+- **Signal-aware consistency:** the predicted HR image is block-mean projected back to LR space. A fixed, signal-dependent variance calibration weights that residual robustly rather than treating every pixel as equally reliable.
+- **Robust fine-tuning:** paired supervision remains the primary signal, while geometric and input-only synthetic corruptions improve resilience to compound degradations.
+- **Inference controls:** configurable flip-based test-time augmentation and a small optional consistency refinement trade runtime for output quality.
 
-### 4. Inference Optimization
-To squeeze maximum performance out of the model during evaluation:
-- **Test-Time Augmentation (TTA):** Averaged predictions across 8-way spatial transformations (flips + rotations) to reduce variance.
-- **Test-Time Refinement:** Employed a local Adam optimizer at inference to perform gradient steps directly on the predicted HR output, minimizing the DC loss against the specific test LR image.
+## Qualitative outputs
 
-## 📊 Results
+The repository includes six generated test panels in [`outputs/presentation_qualitative_png/`](outputs/presentation_qualitative_png/). They compare a noisy `128 x 128` LR observation with its `256 x 256` restoration. These are visual inspections, not quantitative evaluations: test ground truth is not used in those panels.
 
-- **Local Validation (2% Held-Out):** PSNR: 28.5 dB | SSIM: 0.77
-- **Training Time:** ~75 minutes for a full 120-epoch run on 4× NVIDIA RTX A5000 GPUs.
-- **OOD Generalization:** The model successfully generalized to unseen, severe degradations in the private test set, proving the effectiveness of our curriculum learning and physically-motivated loss.
+## Run it
 
-![Denoised Samples](visualisations/contact_sheet_6_samples.png)
-
-## 🗂️ Repository Structure
-
-- `src/` - dataset loading, model wrapper, DDP helpers, and restoration losses.
-- `configs/` - reproducible NAFNet training and inference presets.
-- `scripts/` - setup, checkpoint inspection, dataset conversion, and visualization helpers.
-- `notebooks/` - Kaggle-oriented exploratory and submission notebooks.
-- `docs/` - technical methodology notes.
-- `visualisations/` - lightweight figures used in the README.
-
-Large artifacts are intentionally not tracked. Put local datasets in `data/`, trained checkpoints in `checkpoints/`, downloaded NAFNet weights in `nafnet/weights/`, and generated predictions in `outputs/`.
-
-## ⚙️ Setup
+Install the dependencies, official NAFNet code, and the SIDD width-64 checkpoint:
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-
 bash scripts/setup_nafnet_official.sh
 bash scripts/download_nafnet_sidd_width64.sh
 ```
 
-The active model wrapper uses the official NAFNet implementation at `nafnet/official`, which the setup script clones locally. That directory is ignored so the repository stays focused on the competition-specific code.
-
-## 🏋️ Training
-
-Expected training data layout:
+Expected paired training layout:
 
 ```text
 data/train/
@@ -82,15 +60,11 @@ data/train/
     └── 000000.npy
 ```
 
-Run the default DDP training config:
+Train with the provided distributed configuration:
 
 ```bash
 torchrun --nproc_per_node=4 train_nafnet_ddp.py --config configs/train_nafnet_h2.yaml
 ```
-
-For a single-process smoke run, set `--nproc_per_node=1` and reduce `epochs`, `batch_size`, and `num_workers` in the config or via CLI overrides.
-
-## 🔎 Inference and Submission
 
 Run local inference from a trained checkpoint:
 
@@ -98,25 +72,39 @@ Run local inference from a trained checkpoint:
 python3 infer_nafnet_ddp.py --config configs/infer_nafnet_h2.yaml --checkpoint checkpoints/nafnet_h2/best_infer.pt
 ```
 
-Create a Kaggle-style submission CSV from prediction `.npy` files:
+Create a Kaggle-style submission from prediction files:
 
 ```bash
 python3 make_submission_csv.py --submission-dir outputs/nafnet_h2/test_predictions --output-csv submission.csv
 ```
 
-On Kaggle, use the prepared inference wrapper:
+The Kaggle wrapper uses [`configs/kaggle_infer_nafnet_best_infer.yaml`](configs/kaggle_infer_nafnet_best_infer.yaml):
 
 ```bash
 python3 infer_nafnet_kaggle_best_infer.py
 ```
 
-## 🧑‍💻 Team
+## Repository map
 
-**Team Name: TAUIG | Department of Artificial Intelligence, Indian Institute of Technology, Hyderabad**
+- `src/`: paired-data loading, NAFNet adapter, losses, configuration, and DDP helpers.
+- `train_nafnet_ddp.py`: training, curriculum, scheduling, validation, and checkpointing.
+- `infer_nafnet_ddp.py`: TTA, optional consistency refinement, validation, and submission writing.
+- `configs/`: reproducible train, local inference, and Kaggle presets.
+- `scripts/`: setup, checkpoint inspection, `.npy` pair preparation, and visualization helpers.
+- `docs/methodology.md`: the detailed mathematical and implementation note.
+- `outputs/presentation_qualitative_png/`: six versioned qualitative panels.
+
+Datasets, checkpoints, raw prediction arrays, submissions, the cloned official NAFNet checkout, and downloaded weights remain ignored. The six PNG panels are the intentional exception because they are lightweight, human-inspectable results.
+
+## Team
+
+Team TAUIG, Department of Artificial Intelligence, Indian Institute of Technology Hyderabad:
+
 - Supriyo Banerjea (AI24MTECH12005)
 - Debanjan Das (AI24MTECH12009)
 - Sumanta Manna (AI24MTECH12011)
 
-## 📚 References
-- Chen, L. et al., "Simple Baselines for Image Restoration (NAFNet)," ECCV, 2022.
-- Zamir, S. W. et al., "Restormer: Efficient Transformer for High-Resolution Image Restoration," CVPR, 2022.
+## References
+
+- Chen, L. et al. "Simple Baselines for Image Restoration (NAFNet)." ECCV, 2022.
+- The setup script retrieves the official [Megvii NAFNet implementation](https://github.com/megvii-research/NAFNet).
