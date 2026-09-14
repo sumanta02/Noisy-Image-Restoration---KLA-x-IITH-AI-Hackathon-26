@@ -41,12 +41,12 @@ At training time, filename intersection pairs `data/train/GT/<name>.npy` with `d
 
 The trainable model is implemented in [`src/model.py`](src/model.py). The wrapper does not alter the official NAFNet topology. For a one-channel LR input it computes
 
-$$
+```math
 \hat{x} = \operatorname{clip}_{[0,1]}\left[
 \frac{1}{3}\sum_{c=1}^{3}
 \mathcal{B}_{\theta}\left(\operatorname{rep}_3\left(U_2(y)\right)\right)_c
 \right],
-$$
+```
 
 where `U_2` is bilinear interpolation with `align_corners=False`, `rep_3` repeats the grayscale channel three times, and `B_theta` is the official RGB NAFNet backbone. The wrapper crops its output to exactly `2H x 2W` and clamps it to the valid intensity range. Repeating and averaging are deliberate compatibility adapters: they let an RGB SIDD checkpoint initialize a grayscale model while the full backbone is still fine-tuned on the target task.
 
@@ -58,11 +58,11 @@ The checkpoint loader accepts common NAFNet checkpoint keys (`params_ema`, `para
 
 The low-resolution consistency branch assumes a 2x block-mean forward operator. With `D_s` denoting average pooling over non-overlapping `s x s` blocks, the code evaluates
 
-$$
+```math
 \mu = D_s(\hat{x}), \qquad
 q = \frac{D_s(\hat{x} \odot \hat{x})}{s^2}, \qquad
 v = \max(b + a q, 10^{-8}).
-$$
+```
 
 For the provided configuration, `s = 2`, `a = 0.14160734`, and `b = 0.000063383`. The additional division by `s^2` in `q` is part of the implemented H2 calibration; `q` should therefore be read as the code's scaled local energy statistic, not casually relabeled as an ordinary second moment.
 
@@ -72,18 +72,18 @@ This is a practical calibration model, not a claim that the exact sensor likelih
 
 For reference, the repository contains the full Student-t negative log likelihood
 
-$$
+```math
 -\log p(y_i \mid \mu_i, v_i) = C(\nu) + \frac{1}{2}\log v_i
 + \frac{\nu + 1}{2}\log\left(1 + \frac{(y_i-\mu_i)^2}{\nu v_i}\right),
-$$
+```
 
 in `student_t_nll`. The active training objective deliberately uses the safer robust form below instead:
 
-$$
+```math
 \mathcal{L}_{\mathrm{DC}} = \frac{1}{N}\sum_i
 \log\left(1 + \frac{(y_i - \mu_i)^2}
 {\nu\,\operatorname{stopgrad}(\max(v_i,10^{-4}))}\right).
-$$
+```
 
 The supplied training config uses `nu = 3`. This distinction matters. The active term omits the `log(v)` likelihood term and detaches the variance weights. Consequently, gradients cannot improve the loss by manipulating the predicted variance through `q`; `v` only supplies a locally adaptive, heavy-tailed residual weight. This is the explicit safeguard against variance-collapse or variance-inflation shortcuts mentioned in [`src/losses.py`](src/losses.py). The data-consistency term is then a regularizer on an already supervised HR restoration model, rather than the sole source of learning signal.
 
@@ -91,7 +91,7 @@ The supplied training config uses `nu = 3`. This distinction matters. The active
 
 The generic objective implemented in [`src/losses.py`](src/losses.py) is
 
-$$
+```math
 \begin{aligned}
 \mathcal{L} ={}& \lambda_P\mathcal{L}_{\mathrm{PSNR}}
 + \lambda_1\mathcal{L}_1
@@ -103,7 +103,7 @@ $$
 + \lambda_L\mathcal{L}_{\mathrm{LPIPS}}
 + \lambda_E\mathcal{L}_{\mathrm{edge}}.
 \end{aligned}
-$$
+```
 
 The terms are concrete code paths, not all mandatory objectives:
 
