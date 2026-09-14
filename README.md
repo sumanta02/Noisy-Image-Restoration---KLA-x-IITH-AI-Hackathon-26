@@ -7,7 +7,7 @@ This is a grayscale, 2x joint super-resolution and restoration pipeline for pair
 
 The aim of this README is to state precisely what the code does. In particular, the heteroscedastic term is a fixed-calibration consistency regularizer, not an uncertainty-prediction head and not an unqualified claim of a new noise model.
 
-![Noisy input and ground truth example](visualisations/noisy_gt_comp.png)
+![Paired noisy low-resolution observation and clean high-resolution target](visualisations/noisy_gt_comparison_v2.png)
 
 ## Qualitative outputs
 
