@@ -23,14 +23,20 @@ The following six panels are generated test outputs and are versioned in [`outpu
 
 ## Pipeline in one view
 
-```text
-noisy LR y
-    |
-    +--> bilinear 2x upsample --> replicate gray channel to RGB --> official NAFNet --> RGB mean --> x_hat (HR)
-                                                                                          |
-                 paired ground-truth x ----------------------------------------------------+--> HR reconstruction terms
-                                                                                          |
-                                                                                          +--> 2x block-mean reprojection --> robust DC term against y
+```mermaid
+flowchart LR
+    y["Noisy LR y"] --> upsample["Bilinear 2x upsample"]
+    upsample --> replicate["Replicate grayscale channel to RGB"]
+    replicate --> nafnet["Official NAFNet"]
+    nafnet --> mean["RGB channel mean"]
+    mean --> prediction["x_hat (HR)"]
+
+    ground_truth["Paired ground-truth x"] --> reconstruction["HR reconstruction terms"]
+    prediction --> reconstruction
+
+    prediction --> reprojection["2x block-mean reprojection"]
+    reprojection --> dc["Robust DC term"]
+    y --> dc
 ```
 
 Let `x` be the clean high-resolution image, `y` its noisy low-resolution observation, and `x_hat = f_theta(y)` the prediction. The implementation uses `x, x_hat in [0, 1]^(H x W)` and `y in R^((H/2) x (W/2))` for the default scale `s = 2`.
