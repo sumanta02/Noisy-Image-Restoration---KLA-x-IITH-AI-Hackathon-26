@@ -22,7 +22,10 @@ env/
 
 # Datasets, model artifacts, and generated submissions
 data/
-outputs/
+outputs/*
+# The six lightweight presentation panels are intentional repository assets.
+!outputs/presentation_qualitative_png/
+!outputs/presentation_qualitative_png/*.png
 checkpoints/
 submission/
 submission.csv
