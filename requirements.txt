@@ -1,0 +1,17 @@
+torch
+torchvision
+numpy
+tqdm
+pytorch-msssim
+lpips
+pyyaml
+matplotlib
+scipy
+scikit-image
+opencv-python
+addict
+future
+requests
+gdown
+Pillow
+importlib-metadata; python_version < "3.8"

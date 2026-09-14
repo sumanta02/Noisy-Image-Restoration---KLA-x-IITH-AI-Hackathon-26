@@ -1,2 +1,36 @@
+# Presentation exports
 KLA_Presentation(OVERLEAF source file)/
 KLA_Presentation.pdf
+
+# Python caches and local environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+venv/
+env/
+
+# Local secrets and machine-specific files
+.env
+.env.*
+.DS_Store
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Datasets, model artifacts, and generated submissions
+data/
+outputs/
+checkpoints/
+submission/
+submission.csv
+*.npy
+*.pt
+*.pth
+*.ckpt
+
+# External NAFNet checkout and downloaded pretrained weights
+nafnet/official/
+nafnet/weights/
