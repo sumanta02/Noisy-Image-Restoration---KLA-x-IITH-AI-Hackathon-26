@@ -42,9 +42,9 @@ At training time, filename intersection pairs `data/train/GT/<name>.npy` with `d
 The trainable model is implemented in [`src/model.py`](src/model.py). The wrapper does not alter the official NAFNet topology. For a one-channel LR input it computes
 
 ```math
-\hat{x} = \operatorname{clip}_{[0,1]}\left[
+\hat{x} = \mathrm{clip}_{[0,1]}\left[
 \frac{1}{3}\sum_{c=1}^{3}
-\mathcal{B}_{\theta}\left(\operatorname{rep}_3\left(U_2(y)\right)\right)_c
+\mathcal{B}_{\theta}\left(\mathrm{rep}_3\left(U_2(y)\right)\right)_c
 \right],
 ```
 
@@ -82,7 +82,7 @@ in `student_t_nll`. The active training objective deliberately uses the safer ro
 ```math
 \mathcal{L}_{\mathrm{DC}} = \frac{1}{N}\sum_i
 \log\left(1 + \frac{(y_i - \mu_i)^2}
-{\nu\,\operatorname{stopgrad}(\max(v_i,10^{-4}))}\right).
+{\nu\,\mathrm{stopgrad}(\max(v_i,10^{-4}))}\right).
 ```
 
 The supplied training config uses `nu = 3`. This distinction matters. The active term omits the `log(v)` likelihood term and detaches the variance weights. Consequently, gradients cannot improve the loss by manipulating the predicted variance through `q`; `v` only supplies a locally adaptive, heavy-tailed residual weight. This is the explicit safeguard against variance-collapse or variance-inflation shortcuts mentioned in [`src/losses.py`](src/losses.py). The data-consistency term is then a regularizer on an already supervised HR restoration model, rather than the sole source of learning signal.
