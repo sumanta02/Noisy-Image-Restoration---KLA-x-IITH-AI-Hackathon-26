@@ -1,0 +1,31 @@
+input_dir: ../data/test/NoisyLR
+output_dir: outputs/nafnet_h2/test_predictions
+
+checkpoint: auto
+train_output_dir: outputs/nafnet_h2
+
+batch_size: 8
+num_workers: 4
+amp: true
+quality_preset: balanced
+
+# Optional model overrides; defaults come from checkpoint args.
+nafnet_preset: sidd-width64
+official_repo: nafnet/official
+in_channels: 1
+scale: 2
+upsample_mode: bilinear
+
+h2_a: 0.14160734
+h2_b: 0.000063383
+student_t_nu: 3.0
+
+refine_steps: null
+refine_lr: null
+tta: null
+
+write_submission_csv: false
+submission_csv_path: ""
+verify_all_inputs: true
+expected_size: 256
+expected_count: -1

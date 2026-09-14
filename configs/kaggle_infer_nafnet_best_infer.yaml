@@ -1,0 +1,23 @@
+# Kaggle-compatible inference + submission packaging config.
+input_dir: /kaggle/input/competition-data/test/NoisyLR
+output_dir: /kaggle/working/submission
+
+# Set train_output_dir to the mounted dataset directory where your checkpoint lives.
+# Example: /kaggle/input/nafnet-h2-checkpoints
+checkpoint: auto
+train_output_dir: /kaggle/input/nafnet-h2-checkpoints
+
+batch_size: 4
+num_workers: 2
+amp: true
+quality_preset: fast
+
+refine_steps: null
+refine_lr: null
+tta: null
+
+write_submission_csv: true
+submission_csv_path: /kaggle/working/submission.csv
+verify_all_inputs: true
+expected_size: 256
+expected_count: -1

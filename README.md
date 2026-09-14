@@ -7,11 +7,13 @@
 
 ## 📖 Overview
 
-This repository contains our award-winning solution for reconstructing high-quality images from degraded, noisy, and low-resolution `.npy` inputs. 
+This repository contains our award-winning solution for reconstructing high-quality images from degraded, noisy, and low-resolution `.npy` inputs. The implementation includes the training loop, inference pipeline, Kaggle submission helper, experiment configs, and notebooks used during development.
 
 ![Noisy vs Ground Truth](visualisations/noisy_gt_comp.png)
 
 Real-world physical degradation is complex. We tackled the challenge of **compound corruptions**—simultaneously handling Speckle Noise, Additive White Gaussian Noise (AWGN), and Block Mean Downsampling.
+
+For a deeper technical walkthrough, see [`docs/methodology.md`](docs/methodology.md).
 
 ## 🚀 Key Innovations
 
@@ -44,6 +46,70 @@ To squeeze maximum performance out of the model during evaluation:
 
 ![Denoised Samples](visualisations/contact_sheet_6_samples.png)
 
+## 🗂️ Repository Structure
+
+- `src/` - dataset loading, model wrapper, DDP helpers, and restoration losses.
+- `configs/` - reproducible NAFNet training and inference presets.
+- `scripts/` - setup, checkpoint inspection, dataset conversion, and visualization helpers.
+- `notebooks/` - Kaggle-oriented exploratory and submission notebooks.
+- `docs/` - technical methodology notes.
+- `visualisations/` - lightweight figures used in the README.
+
+Large artifacts are intentionally not tracked. Put local datasets in `data/`, trained checkpoints in `checkpoints/`, downloaded NAFNet weights in `nafnet/weights/`, and generated predictions in `outputs/`.
+
+## ⚙️ Setup
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+
+bash scripts/setup_nafnet_official.sh
+bash scripts/download_nafnet_sidd_width64.sh
+```
+
+The active model wrapper uses the official NAFNet implementation at `nafnet/official`, which the setup script clones locally. That directory is ignored so the repository stays focused on the competition-specific code.
+
+## 🏋️ Training
+
+Expected training data layout:
+
+```text
+data/train/
+├── GT/
+│   └── 000000.npy
+└── NoisyLR/
+    └── 000000.npy
+```
+
+Run the default DDP training config:
+
+```bash
+torchrun --nproc_per_node=4 train_nafnet_ddp.py --config configs/train_nafnet_h2.yaml
+```
+
+For a single-process smoke run, set `--nproc_per_node=1` and reduce `epochs`, `batch_size`, and `num_workers` in the config or via CLI overrides.
+
+## 🔎 Inference and Submission
+
+Run local inference from a trained checkpoint:
+
+```bash
+python3 infer_nafnet_ddp.py --config configs/infer_nafnet_h2.yaml --checkpoint checkpoints/nafnet_h2/best_infer.pt
+```
+
+Create a Kaggle-style submission CSV from prediction `.npy` files:
+
+```bash
+python3 make_submission_csv.py --submission-dir outputs/nafnet_h2/test_predictions --output-csv submission.csv
+```
+
+On Kaggle, use the prepared inference wrapper:
+
+```bash
+python3 infer_nafnet_kaggle_best_infer.py
+```
+
 ## 🧑‍💻 Team
 
 **Team Name: TAUIG | Department of Artificial Intelligence, Indian Institute of Technology, Hyderabad**
@@ -54,4 +120,3 @@ To squeeze maximum performance out of the model during evaluation:
 ## 📚 References
 - Chen, L. et al., "Simple Baselines for Image Restoration (NAFNet)," ECCV, 2022.
 - Zamir, S. W. et al., "Restormer: Efficient Transformer for High-Resolution Image Restoration," CVPR, 2022.
-

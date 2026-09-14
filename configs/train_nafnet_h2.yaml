@@ -1,0 +1,98 @@
+# NAFNet high-ROI finetune config (100-150 epoch regime).
+
+data_root: data/train
+gt_subdir: GT
+noisy_subdir: NoisyLR
+output_dir: outputs/nafnet_h2
+
+nafnet_preset: sidd-width64
+official_repo: nafnet/official
+pretrained: nafnet/weights/nafnet_sidd_width64.pth
+strict_pretrained: false
+staged_freeze: false
+freeze_stage1_end_epoch: 10
+freeze_stage2_end_epoch: 25
+freeze_intro: true
+
+in_channels: 1
+scale: 2
+upsample_mode: bilinear
+
+epochs: 120
+batch_size: 8
+num_workers: 8
+lr: 0.0005
+weight_decay: 0.0
+grad_clip: 0.0
+optim_beta1: 0.9
+optim_beta2: 0.9
+amp: false
+lr_warmup_epochs: 3
+lr_warmup_start_factor: 0.05
+lr_eta_min: 0.0000001
+total_iters: -1
+
+patch_size: 256
+augment_profile: max
+augment_curriculum: true
+ood_prob: 0.95
+ood_max_transforms: 5
+ood_clip_min: -0.25
+ood_clip_max: 1.8
+val_ratio: 0.10
+seed: 42
+
+finetune_preset: roi_psnr_120e
+stage1_end_epoch: 20
+stage2_end_epoch: 90
+
+lambda_psnr: 1.0
+lambda_l1: 0.0
+lambda_l2: 0.0
+lambda_charbonnier: 0.0
+lambda_fft: 0.0
+
+warmup_epochs: 0
+dc_schedule: constant
+dc_lambda_start: 0.005
+dc_lambda_step: 0.005
+dc_lambda_cap: 0.04
+dc_patience: 2
+dc_min_delta: 0.0001
+dc_ramp_epochs: 10
+
+lambda_ssim: 0.02
+ssim_start_epoch: 0
+ssim_lambda_start: 0.0
+ssim_ramp_epochs: 1
+ssim_contribute_to_loss: true
+pixel_loss_type: psnr
+charbonnier_eps: 0.001
+lambda_edge: 0.0
+
+lambda_dc: 0.008
+student_t_nu: 3.0
+
+lambda_lpips_max: 0.0
+lpips_start_epoch: 60
+lpips_lambda_start: 0.0
+lpips_ramp_epochs: 30
+lpips_gate_psnr: 25.5
+lpips_gate_min_epoch: 40
+lpips_net: alex
+
+require_ssim: true
+require_lpips: false
+dc_debug_first_epoch: false
+
+h2_a: 0.14160734
+h2_b: 0.000063383
+h2_jitter: 0.0
+h2_jitter_decay: none
+h2_jitter_min: 0.0
+
+auto_resume: true
+resume: ""
+save_every: -1
+export_best_infer: true
+export_latest_infer: true
